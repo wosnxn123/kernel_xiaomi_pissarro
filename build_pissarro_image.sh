@@ -5,12 +5,72 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUT_DIR="${OUT_DIR:-${ROOT_DIR}/out}"
 DIST_DIR="${DIST_DIR:-${ROOT_DIR}/dist}"
 DEFCONFIG="${DEFCONFIG:-pissarro_user_defconfig}"
-JOBS="${JOBS:-$(nproc --all)}"
+if [[ -z "${JOBS:-}" ]]; then
+	if command -v nproc >/dev/null 2>&1; then
+		JOBS="$(nproc --all)"
+	else
+		JOBS="4"
+	fi
+fi
 TARGET="${TARGET:-Image.gz-dtb}"
+AUTO_INSTALL_DEPS="${AUTO_INSTALL_DEPS:-1}"
 
 TOOLCHAIN_DIR="${TOOLCHAIN_DIR:-${ROOT_DIR}/toolchains/proton-clang-13}"
 TOOLCHAIN_REPO="${TOOLCHAIN_REPO:-https://gitlab.com/LeCmnGend/proton-clang.git}"
 TOOLCHAIN_BRANCH="${TOOLCHAIN_BRANCH:-clang-13}"
+
+install_missing_deps() {
+	local missing=()
+	local packages=()
+	local cmd
+
+	for cmd in "$@"; do
+		if command -v "${cmd}" >/dev/null 2>&1; then
+			continue
+		fi
+
+		missing+=("${cmd}")
+		case "${cmd}" in
+		make) packages+=("make") ;;
+		git) packages+=("git") ;;
+		bc) packages+=("bc") ;;
+		flex) packages+=("flex") ;;
+		bison) packages+=("bison") ;;
+		perl) packages+=("perl") ;;
+		python3) packages+=("python3") ;;
+		nproc) packages+=("coreutils") ;;
+		*) packages+=("${cmd}") ;;
+		esac
+	done
+
+	if [[ "${#missing[@]}" -eq 0 ]]; then
+		return
+	fi
+
+	echo "==> Missing required command(s): ${missing[*]}"
+	if [[ "${AUTO_INSTALL_DEPS}" != "1" ]]; then
+		echo "AUTO_INSTALL_DEPS=0, please install package(s): ${packages[*]}"
+		exit 1
+	fi
+
+	if ! command -v apt-get >/dev/null 2>&1; then
+		echo "apt-get not found. Please install package(s): ${packages[*]}"
+		exit 1
+	fi
+
+	local apt=(apt-get)
+	if [[ "${EUID}" -ne 0 ]]; then
+		if ! command -v sudo >/dev/null 2>&1; then
+			echo "sudo not found. Please install package(s) as root: ${packages[*]}"
+			exit 1
+		fi
+		apt=(sudo apt-get)
+	fi
+
+	echo "==> Installing minimal build dependency package(s): ${packages[*]}"
+	"${apt[@]}" update
+	"${apt[@]}" install -y "${packages[@]}"
+}
 
 need_cmd() {
 	if ! command -v "$1" >/dev/null 2>&1; then
@@ -76,7 +136,9 @@ build_image() {
 	ls -lh "${image}" "${DIST_DIR}/Image.gz-dtb"
 }
 
+install_missing_deps make git bc flex bison perl python3 nproc
 need_cmd make
+need_cmd git
 need_cmd nproc
 fetch_toolchain
 build_image
