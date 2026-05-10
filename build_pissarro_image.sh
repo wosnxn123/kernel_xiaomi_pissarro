@@ -11,10 +11,6 @@ if [[ -z "${JOBS:-}" ]]; then
 	else
 		JOBS="4"
 	fi
-
-	if [[ "${JOBS}" -gt 16 ]]; then
-		JOBS="16"
-	fi
 fi
 TARGET="${TARGET:-Image.gz-dtb}"
 AUTO_INSTALL_DEPS="${AUTO_INSTALL_DEPS:-1}"
@@ -109,6 +105,7 @@ fetch_toolchain() {
 
 build_image() {
 	mkdir -p "${OUT_DIR}" "${DIST_DIR}"
+	export PATH="${PATH}:${TOOLCHAIN_DIR}/bin"
 
 	echo "==> Kernel: ${ROOT_DIR}"
 	echo "==> Out: ${OUT_DIR}"
