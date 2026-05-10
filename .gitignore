@@ -47,7 +47,10 @@ modules.builtin
 #
 /tags
 /TAGS
+/dist/
 /linux
+/out/
+/toolchains/
 /vmlinux
 /vmlinux.32
 /vmlinux-gdb.py
@@ -124,4 +127,3 @@ all.config
 
 # fetched Android config fragments
 kernel/configs/android-*.cfg
-
