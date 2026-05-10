@@ -7,6 +7,13 @@ config MTK_CPU_FREQ
 	  changed which will depended on CPU FREQ governor.
 	  If unsure, say N.
 
+config MTK_CPU_FREQ_STANDARDIZE
+	bool "Sane frequency control for MTK cpufreq"
+	depends on MTK_CPU_FREQ
+	help
+	  Allow the standard cpufreq policy path to drive MTK cpufreq limits
+	  and keep PPM min/max constraints synchronized with sysfs policy.
+
 config MTK_PTPOD
 	bool "MTK PTPOD"
 	default n

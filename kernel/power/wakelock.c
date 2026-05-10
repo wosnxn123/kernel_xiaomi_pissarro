@@ -18,11 +18,16 @@
 #include <linux/list.h>
 #include <linux/rbtree.h>
 #include <linux/slab.h>
+#include <linux/string.h>
 #include <linux/workqueue.h>
 
 #include "power.h"
 
 static DEFINE_MUTEX(wakelocks_lock);
+#ifdef CONFIG_BOEFFLA_WAKELOCK_BLOCKER
+static DEFINE_MUTEX(wakelock_blocker_lock);
+static char wakelock_blocker_list[PAGE_SIZE];
+#endif
 
 struct wakelock {
 	char			*name;
@@ -143,6 +148,55 @@ static inline void wakelocks_lru_most_recent(struct wakelock *wl) {}
 static inline void wakelocks_gc(void) {}
 #endif /* !CONFIG_PM_WAKELOCKS_GC */
 
+#ifdef CONFIG_BOEFFLA_WAKELOCK_BLOCKER
+static bool wakelock_blocked(const char *name, size_t len)
+{
+	char *buf, *token, *cur;
+	bool blocked = false;
+
+	buf = kstrdup(wakelock_blocker_list, GFP_KERNEL);
+	if (!buf)
+		return false;
+
+	cur = buf;
+	while ((token = strsep(&cur, " \t\n"))) {
+		if (!*token)
+			continue;
+		if (strlen(token) == len && !strncmp(token, name, len)) {
+			blocked = true;
+			break;
+		}
+	}
+
+	kfree(buf);
+	return blocked;
+}
+
+ssize_t pm_show_wakelock_blocker(char *buf)
+{
+	ssize_t ret;
+
+	mutex_lock(&wakelock_blocker_lock);
+	ret = scnprintf(buf, PAGE_SIZE, "%s\n", wakelock_blocker_list);
+	mutex_unlock(&wakelock_blocker_lock);
+
+	return ret;
+}
+
+ssize_t pm_store_wakelock_blocker(const char *buf, size_t n)
+{
+	size_t len = min(n, sizeof(wakelock_blocker_list) - 1);
+
+	mutex_lock(&wakelock_blocker_lock);
+	memcpy(wakelock_blocker_list, buf, len);
+	wakelock_blocker_list[len] = '\0';
+	strim(wakelock_blocker_list);
+	mutex_unlock(&wakelock_blocker_lock);
+
+	return n;
+}
+#endif
+
 static struct wakelock *wakelock_lookup_add(const char *name, size_t len,
 					    bool add_if_not_found)
 {
@@ -223,6 +277,15 @@ int pm_wake_lock(const char *buf)
 		if (ret)
 			return -EINVAL;
 	}
+
+#ifdef CONFIG_BOEFFLA_WAKELOCK_BLOCKER
+	mutex_lock(&wakelock_blocker_lock);
+	if (wakelock_blocked(buf, len)) {
+		mutex_unlock(&wakelock_blocker_lock);
+		return 0;
+	}
+	mutex_unlock(&wakelock_blocker_lock);
+#endif
 
 	mutex_lock(&wakelocks_lock);
 

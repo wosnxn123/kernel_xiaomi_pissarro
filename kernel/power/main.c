@@ -746,6 +746,27 @@ static ssize_t wake_unlock_store(struct kobject *kobj,
 
 power_attr(wake_unlock);
 
+#ifdef CONFIG_BOEFFLA_WAKELOCK_BLOCKER
+extern ssize_t pm_show_wakelock_blocker(char *buf);
+extern ssize_t pm_store_wakelock_blocker(const char *buf, size_t n);
+
+static ssize_t wakelock_blocker_show(struct kobject *kobj,
+				     struct kobj_attribute *attr,
+				     char *buf)
+{
+	return pm_show_wakelock_blocker(buf);
+}
+
+static ssize_t wakelock_blocker_store(struct kobject *kobj,
+				      struct kobj_attribute *attr,
+				      const char *buf, size_t n)
+{
+	return pm_store_wakelock_blocker(buf, n);
+}
+
+power_attr(wakelock_blocker);
+#endif
+
 #endif /* CONFIG_PM_WAKELOCKS */
 #endif /* CONFIG_PM_SLEEP */
 
@@ -830,6 +851,9 @@ static struct attribute * g[] = {
 #ifdef CONFIG_PM_WAKELOCKS
 	&wake_lock_attr.attr,
 	&wake_unlock_attr.attr,
+#ifdef CONFIG_BOEFFLA_WAKELOCK_BLOCKER
+	&wakelock_blocker_attr.attr,
+#endif
 #endif
 #ifdef CONFIG_PM_SLEEP_DEBUG
 	&pm_test_attr.attr,

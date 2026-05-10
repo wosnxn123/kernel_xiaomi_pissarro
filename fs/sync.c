@@ -16,10 +16,56 @@
 #include <linux/pagemap.h>
 #include <linux/quotaops.h>
 #include <linux/backing-dev.h>
+#include <linux/kobject.h>
 #include "internal.h"
 
 #define VALID_FLAGS (SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE| \
 			SYNC_FILE_RANGE_WAIT_AFTER)
+
+#ifdef CONFIG_DYNAMIC_FSYNC
+static bool dynamic_fsync_active = true;
+static struct kobject *dynamic_fsync_kobj;
+
+static ssize_t dyn_fsync_active_show(struct kobject *kobj,
+				     struct kobj_attribute *attr, char *buf)
+{
+	return scnprintf(buf, PAGE_SIZE, "%u\n", dynamic_fsync_active);
+}
+
+static ssize_t dyn_fsync_active_store(struct kobject *kobj,
+				      struct kobj_attribute *attr,
+				      const char *buf, size_t count)
+{
+	bool active;
+
+	if (kstrtobool(buf, &active))
+		return -EINVAL;
+
+	dynamic_fsync_active = active;
+	return count;
+}
+
+static struct kobj_attribute dyn_fsync_active_attr =
+	__ATTR(Dyn_fsync_active, 0644, dyn_fsync_active_show,
+	       dyn_fsync_active_store);
+
+static int __init dynamic_fsync_init(void)
+{
+	int ret;
+
+	dynamic_fsync_kobj = kobject_create_and_add("dyn_fsync", kernel_kobj);
+	if (!dynamic_fsync_kobj)
+		return -ENOMEM;
+
+	ret = sysfs_create_file(dynamic_fsync_kobj,
+				&dyn_fsync_active_attr.attr);
+	if (ret)
+		kobject_put(dynamic_fsync_kobj);
+
+	return ret;
+}
+late_initcall(dynamic_fsync_init);
+#endif
 
 /*
  * Do the filesystem syncing work. For simple filesystems
@@ -187,6 +233,10 @@ int vfs_fsync_range(struct file *file, loff_t start, loff_t end, int datasync)
 
 	if (!file->f_op->fsync)
 		return -EINVAL;
+#ifdef CONFIG_DYNAMIC_FSYNC
+	if (dynamic_fsync_active)
+		return 0;
+#endif
 	if (!datasync && (inode->i_state & I_DIRTY_TIME)) {
 		spin_lock(&inode->i_lock);
 		inode->i_state &= ~I_DIRTY_TIME;

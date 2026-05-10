@@ -141,6 +141,15 @@ config PM_WAKELOCKS_GC
 	depends on PM_WAKELOCKS
 	default y
 
+config BOEFFLA_WAKELOCK_BLOCKER
+	bool "Boeffla-style userspace wakelock blocker"
+	depends on PM_WAKELOCKS
+	default y
+	help
+	  Provide a /sys/power/wakelock_blocker list of userspace wakelock
+	  names that should be ignored when written through /sys/power/wake_lock.
+	  This intentionally does not block kernel driver wakeup sources.
+
 config PM
 	bool "Device power management core functionality"
 	---help---

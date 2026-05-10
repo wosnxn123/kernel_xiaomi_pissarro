@@ -91,6 +91,22 @@ config IOSCHED_BFQ
 	real-time applications.  Details in
 	Documentation/block/bfq-iosched.txt
 
+config IOSCHED_ZEN
+	tristate "Zen I/O scheduler"
+	default n
+	---help---
+	  Zen is a lightweight single-queue scheduler based on Noop,
+	  Deadline, and SIO ideas. It uses FIFO deadlines with a small
+	  batching window and is intended for flash storage.
+
+config IOSCHED_MAPLE
+	tristate "Maple I/O scheduler"
+	default n
+	---help---
+	  Maple is a lightweight single-queue scheduler derived from Zen/SIO.
+	  It keeps separate read/write and sync/async queues and biases reads
+	  for interactive flash-storage workloads.
+
 config BFQ_GROUP_IOSCHED
        bool "BFQ hierarchical scheduling support"
        depends on IOSCHED_BFQ && BLK_CGROUP

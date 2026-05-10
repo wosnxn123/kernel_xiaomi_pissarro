@@ -34,7 +34,7 @@ struct zstd_ctx {
 
 static ZSTD_parameters zstd_params(void)
 {
-	return zstd_get_params(ZSTD_DEF_LEVEL, PAGE_SIZE);
+	return ZSTD_getParams(ZSTD_DEF_LEVEL, PAGE_SIZE, 0);
 }
 
 static int zstd_comp_init(struct zstd_ctx *ctx)
