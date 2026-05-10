@@ -116,6 +116,8 @@ build_image() {
 	echo "==> Target: ${TARGET}"
 
 	make -C "${ROOT_DIR}" O="${OUT_DIR}" ARCH=arm64 "${DEFCONFIG}"
+	rm -f "${OUT_DIR}/Module.symvers" "${OUT_DIR}/vmlinux.o" "${OUT_DIR}/vmlinux"
+	rm -rf "${OUT_DIR}/.thinlto-cache"
 
 	make -C "${ROOT_DIR}" -j"${JOBS}" O="${OUT_DIR}" \
 		ARCH=arm64 \
