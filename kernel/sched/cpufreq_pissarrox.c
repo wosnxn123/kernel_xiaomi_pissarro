@@ -285,7 +285,8 @@ static void sugov_set_iowait_boost(struct sugov_cpu *sg_cpu, u64 time,
 			if (sg_cpu->iowait_boost > max_boost)
 				sg_cpu->iowait_boost = max_boost;
 		} else {
-			sg_cpu->iowait_boost = min(sg_cpu->iowait_boost_max,
+			sg_cpu->iowait_boost = min_t(unsigned int,
+						    sg_cpu->iowait_boost_max,
 						    sg_cpu->min_boost <<
 						    PISSARROX_IOWAIT_BOOST_SHIFT);
 		}

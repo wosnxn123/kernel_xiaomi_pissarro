@@ -568,7 +568,7 @@ static unsigned long long uksm_sleep_times;
 
 #define UKSM_RUN_STOP	0
 #define UKSM_RUN_MERGE	1
-static unsigned int uksm_run = 1;
+static unsigned int uksm_run;
 
 static DECLARE_WAIT_QUEUE_HEAD(uksm_thread_wait);
 static DEFINE_MUTEX(uksm_thread_mutex);
@@ -5552,7 +5552,7 @@ static int __init uksm_init(void)
 		goto out_free;
 	}
 #else
-	uksm_run = UKSM_RUN_MERGE;	/* no way for user to start it */
+	uksm_run = UKSM_RUN_STOP;	/* keep UKSM opt-in when sysfs is unavailable */
 
 #endif /* CONFIG_SYSFS */
 
