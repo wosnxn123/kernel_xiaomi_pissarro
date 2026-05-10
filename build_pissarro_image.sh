@@ -11,6 +11,10 @@ if [[ -z "${JOBS:-}" ]]; then
 	else
 		JOBS="4"
 	fi
+
+	if [[ "${JOBS}" -gt 16 ]]; then
+		JOBS="16"
+	fi
 fi
 TARGET="${TARGET:-Image.gz-dtb}"
 AUTO_INSTALL_DEPS="${AUTO_INSTALL_DEPS:-1}"
@@ -43,9 +47,16 @@ install_missing_deps() {
 		esac
 	done
 
+	if [[ ! -f /usr/include/openssl/bio.h ]]; then
+		missing+=("openssl/bio.h")
+		packages+=("libssl-dev")
+	fi
+
 	if [[ "${#missing[@]}" -eq 0 ]]; then
 		return
 	fi
+
+	readarray -t packages < <(printf '%s\n' "${packages[@]}" | sort -u)
 
 	echo "==> Missing required command(s): ${missing[*]}"
 	if [[ "${AUTO_INSTALL_DEPS}" != "1" ]]; then
